@@ -2,105 +2,97 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TikTok Mirror Looper | Free Online Tool</title>
-    <!-- 1. The Security Guard (Must be FIRST) -->
+    <title>TikTok Mirror Looper</title>
+    <!-- 1. The Security Guard MUST be first -->
     <script src="coi-serviceworker.js"></script>
-    <!-- 2. The Video Engine - Using a reliable mirror -->
+    <!-- 2. The Video Engine -->
     <script src="https://cdn.jsdelivr.net"></script>
     <style>
         :root { --primary: #fe2c55; --bg: #0f0f0f; --card: #1f1f1f; --text: #ffffff; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .container { background: var(--card); padding: 40px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); text-align: center; width: 90%; max-width: 500px; border: 1px solid #333; }
-        h1 { font-size: 28px; margin-bottom: 10px; color: var(--primary); }
-        p { color: #aaa; margin-bottom: 30px; }
-        #drop-zone { border: 2px dashed #444; padding: 50px 20px; border-radius: 16px; transition: 0.3s; cursor: pointer; background: #2a2a2a; }
-        #drop-zone:hover { border-color: var(--primary); background: #333; }
-        #status { margin-top: 25px; font-size: 14px; letter-spacing: 1px; color: #00ffcc; font-weight: bold; text-transform: uppercase; }
-        .loader { width: 100%; height: 4px; background: #333; margin-top: 15px; border-radius: 10px; overflow: hidden; display: none; }
-        .progress { width: 30%; height: 100%; background: var(--primary); animation: slide 1.5s infinite linear; }
-        @keyframes slide { from { margin-left: -30%; } to { margin-left: 100%; } }
-        button { background: var(--primary); color: white; border: none; padding: 16px 32px; border-radius: 50px; font-weight: bold; cursor: pointer; display: none; margin: 25px auto 0; font-size: 16px; transition: 0.2s; box-shadow: 0 4px 15px rgba(254, 44, 85, 0.3); }
-        button:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .container { background: var(--card); padding: 40px; border-radius: 24px; text-align: center; width: 90%; max-width: 450px; border: 1px solid #333; }
+        h1 { color: var(--primary); margin-bottom: 5px; }
+        #drop-zone { border: 2px dashed #444; padding: 40px; border-radius: 16px; cursor: pointer; margin: 20px 0; background: #222; }
+        #status { font-weight: bold; color: #00ffcc; text-transform: uppercase; margin-top: 15px; }
+        .loader { width: 100%; height: 4px; background: #333; margin-top: 10px; display: none; overflow: hidden; }
+        .progress { width: 40%; height: 100%; background: var(--primary); animation: move 1s infinite linear; }
+        @keyframes move { from { margin-left: -40%; } to { margin-left: 100%; } }
+        button { background: var(--primary); color: white; border: none; padding: 15px 30px; border-radius: 50px; cursor: pointer; display: none; margin-top: 20px; font-weight: bold; }
     </style>
 </head>
 <body>
-
     <div class="container">
         <h1>TikTok Looper</h1>
-        <p>Instant Forward + Reverse Video Loop</p>
-        
+        <p style="color:#888">Free Forward + Reverse Loop</p>
         <div id="drop-zone" onclick="document.getElementById('fileInput').click()">
-            <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#fe2c55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-            <div style="margin-top: 15px;">Click or Drag Video Here</div>
+            <span style="font-size: 40px;">📁</span><br>Click or Drag Video
             <input type="file" id="fileInput" style="display:none" accept="video/*">
         </div>
-
-        <div id="status">WAITING FOR ENGINE...</div>
-        <div class="loader" id="loader"><div class="progress"></div></div>
-        
+        <div id="status">INITIALIZING...</div>
+        <div id="loader" class="loader"><div class="progress"></div></div>
         <button id="download-btn">Download Looped Video</button>
     </div>
 
     <script>
-        // Check if FFmpeg loaded successfully from the CDN
-        if (typeof FFmpeg === 'undefined') {
-            document.getElementById('status').innerText = "ERROR: FFMPEG LIBRARY NOT LOADED";
-            document.getElementById('status').style.color = "red";
-        } else {
-            // Correct way to initialize version 0.11.x
-            const { createFFmpeg, fetchFile } = FFmpeg;
-            const ffmpeg = createFFmpeg({ 
-                log: true,
-                corePath: 'https://cdn.jsdelivr.net'
-            });
-
-            const dropZone = document.getElementById('drop-zone');
-            const fileInput = document.getElementById('fileInput');
-            const status = document.getElementById('status');
-            const dlBtn = document.getElementById('download-btn');
-            const loader = document.getElementById('loader');
-
-            status.innerText = "READY TO GO";
-
-            async function processVideo(file) {
-                try {
-                    dlBtn.style.display = "none";
-                    status.innerText = "LOADING ENGINE...";
-                    loader.style.display = "block";
-                    
-                    if (!ffmpeg.isLoaded()) await ffmpeg.load();
-
-                    status.innerText = "PROCESSING... (DON'T CLOSE)";
-                    ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
-                    
-                    // Creates a seamless forward + backward loop
-                    await ffmpeg.run('-i', 'input.mp4', '-filter_complex', '[0:v]reverse[r];[0:v][r]concat=n=2:v=1[v]', '-map', '[v]', 'output.mp4');
-
-                    const data = ffmpeg.FS('readFile', 'output.mp4');
-                    const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-                    
-                    status.innerText = "SUCCESS!";
-                    loader.style.display = "none";
-                    dlBtn.style.display = "block";
-                    dlBtn.onclick = () => {
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = 'looped-video.mp4';
-                        a.click();
-                    };
-                } catch (err) {
-                    console.error(err);
-                    status.innerText = "ERROR: TRY A SMALLER FILE";
-                    loader.style.display = "none";
-                }
+        // Check if library is available
+        const checkLibrary = setInterval(() => {
+            if (typeof FFmpeg !== 'undefined') {
+                clearInterval(checkLibrary);
+                initFFmpeg();
             }
+        }, 500);
 
-            fileInput.onchange = (e) => { if(e.target.files.length) processVideo(e.target.files[0]); };
-            dropZone.ondragover = (e) => { e.preventDefault(); dropZone.style.borderColor = "#fe2c55"; };
-            dropZone.ondragleave = () => { dropZone.style.borderColor = "#444"; };
-            dropZone.ondrop = (e) => { e.preventDefault(); if(e.dataTransfer.files.length) processVideo(e.dataTransfer.files[0]); };
+        let ffmpeg;
+        function initFFmpeg() {
+            const { createFFmpeg } = FFmpeg;
+            ffmpeg = createFFmpeg({ 
+                log: true, 
+                corePath: 'https://cdn.jsdelivr.net' 
+            });
+            document.getElementById('status').innerText = "READY TO GO";
         }
+
+        async function processVideo(file) {
+            const status = document.getElementById('status');
+            const loader = document.getElementById('loader');
+            const dlBtn = document.getElementById('download-btn');
+            
+            try {
+                status.innerText = "STARTING ENGINE...";
+                loader.style.display = "block";
+                dlBtn.style.display = "none";
+                
+                if (!ffmpeg.isLoaded()) await ffmpeg.load();
+
+                status.innerText = "LOOPING VIDEO...";
+                const { fetchFile } = FFmpeg;
+                ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
+                
+                // Mirror Loop Command
+                await ffmpeg.run('-i', 'input.mp4', '-filter_complex', '[0:v]reverse[r];[0:v][r]concat=n=2:v=1[v]', '-map', '[v]', 'output.mp4');
+
+                const data = ffmpeg.FS('readFile', 'output.mp4');
+                const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+                
+                status.innerText = "COMPLETE!";
+                loader.style.display = "none";
+                dlBtn.style.display = "block";
+                dlBtn.onclick = () => {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'looped.mp4';
+                    a.click();
+                };
+            } catch (err) {
+                status.innerText = "ERROR: TRY REFRESHING";
+                loader.style.display = "none";
+            }
+        }
+
+        document.getElementById('fileInput').onchange = (e) => processVideo(e.target.files[0]);
+        const dz = document.getElementById('drop-zone');
+        dz.ondragover = (e) => e.preventDefault();
+        dz.ondrop = (e) => { e.preventDefault(); processVideo(e.dataTransfer.files[0]); };
     </script>
 </body>
 </html>
