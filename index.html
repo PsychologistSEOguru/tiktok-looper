@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TikTok Mirror Looper | Free Online Video Tool</title>
     <script src="coi-serviceworker.js"></script>
-    <script src="https://unpkg.com"></script>
+    <script src="https://cdnjs.cloudflare.com"></script>
     <style>
         :root { --primary: #fe2c55; --bg: #0f0f0f; --card: #1f1f1f; --text: #ffffff; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
@@ -42,7 +42,7 @@
 
     <script>
         const { createFFmpeg, fetchFile } = FFmpeg;
-        const ffmpeg = createFFmpeg({ log: false });
+        const ffmpeg = createFFmpeg({ log: true });
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('fileInput');
         const status = document.getElementById('status');
