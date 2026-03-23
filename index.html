@@ -3,18 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TikTok Mirror Looper | Free Online Video Tool</title>
+    <title>TikTok Mirror Looper | Free Online Tool</title>
+    <!-- 1. The Security Guard -->
     <script src="coi-serviceworker.js"></script>
-    <script src="https://cdnjs.cloudflare.com"></script>
+    <!-- 2. The Stable Video Engine (v0.11) -->
+    <script src="https://cdn.jsdelivr.net"></script>
     <style>
         :root { --primary: #fe2c55; --bg: #0f0f0f; --card: #1f1f1f; --text: #ffffff; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
         .container { background: var(--card); padding: 40px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); text-align: center; width: 90%; max-width: 500px; }
         h1 { font-size: 28px; margin-bottom: 10px; color: var(--primary); }
         p { color: #aaa; margin-bottom: 30px; }
         #drop-zone { border: 2px dashed #444; padding: 50px 20px; border-radius: 16px; transition: 0.3s; cursor: pointer; background: #2a2a2a; }
         #drop-zone:hover { border-color: var(--primary); background: #333; }
-        #status { margin-top: 25px; font-size: 14px; letter-spacing: 1px; color: #00ffcc; }
+        #status { margin-top: 25px; font-size: 14px; letter-spacing: 1px; color: #00ffcc; font-weight: bold; }
         .loader { width: 100%; height: 4px; background: #333; margin-top: 15px; border-radius: 10px; overflow: hidden; display: none; }
         .progress { width: 30%; height: 100%; background: var(--primary); animation: slide 1.5s infinite linear; }
         @keyframes slide { from { margin-left: -30%; } to { margin-left: 100%; } }
@@ -26,7 +28,7 @@
 
     <div class="container">
         <h1>TikTok Looper</h1>
-        <p>Creates a seamless Forward + Reverse loop.</p>
+        <p>Instant Forward + Reverse Video Loop</p>
         
         <div id="drop-zone" onclick="document.getElementById('fileInput').click()">
             <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#fe2c55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
@@ -41,8 +43,13 @@
     </div>
 
     <script>
+        // Setup FFmpeg
         const { createFFmpeg, fetchFile } = FFmpeg;
-        const ffmpeg = FFmpeg.createFFmpeg({ log: true });
+        const ffmpeg = createFFmpeg({ 
+            log: true,
+            corePath: 'https://cdn.jsdelivr.net'
+        });
+
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('fileInput');
         const status = document.getElementById('status');
@@ -51,13 +58,17 @@
 
         async function processVideo(file) {
             try {
+                dlBtn.style.display = "none";
                 status.innerText = "LOADING ENGINE...";
                 loader.style.display = "block";
+                
+                // Start the engine
                 if (!ffmpeg.isLoaded()) await ffmpeg.load();
 
                 status.innerText = "PROCESSING... (PLEASE WAIT)";
                 ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
                 
+                // The Loop Command
                 await ffmpeg.run('-i', 'input.mp4', '-filter_complex', '[0:v]reverse[r];[0:v][r]concat=n=2:v=1[v]', '-map', '[v]', 'output.mp4');
 
                 const data = ffmpeg.FS('readFile', 'output.mp4');
@@ -73,15 +84,17 @@
                     a.click();
                 };
             } catch (err) {
+                console.error(err);
                 status.innerText = "ERROR: TRY A SMALLER FILE";
                 loader.style.display = "none";
             }
         }
 
-        fileInput.onchange = (e) => processVideo(e.target.files[0]);
+        // Handle File Selection
+        fileInput.onchange = (e) => { if(e.target.files[0]) processVideo(e.target.files[0]); };
         dropZone.ondragover = (e) => { e.preventDefault(); dropZone.style.borderColor = "#fe2c55"; };
         dropZone.ondragleave = () => { dropZone.style.borderColor = "#444"; };
-        dropZone.ondrop = (e) => { e.preventDefault(); processVideo(e.dataTransfer.files[0]); };
+        dropZone.ondrop = (e) => { e.preventDefault(); if(e.dataTransfer.files[0]) processVideo(e.dataTransfer.files[0]); };
     </script>
 </body>
 </html>
