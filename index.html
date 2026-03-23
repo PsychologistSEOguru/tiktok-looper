@@ -42,7 +42,7 @@
 
     <script>
         const { createFFmpeg, fetchFile } = FFmpeg;
-        const ffmpeg = createFFmpeg({ log: true });
+        const ffmpeg = FFmpeg.createFFmpeg({ log: true });
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('fileInput');
         const status = document.getElementById('status');
