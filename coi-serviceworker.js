@@ -1,2 +1,48 @@
-/*! coi-serviceworker v0.1.7 | MIT License | https://github.com/gzuidhof/coi-serviceworker */
-if(typeof window==="undefined"){self.addEventListener("install",()=>self.skipWaiting());self.addEventListener("activate",e=>e.waitUntil(self.clients.claim()));self.addEventListener("fetch",e=>{if(e.request.mode==="navigate"){e.respondWith(fetch(e.request).then(n=>{const t=new Headers(n.headers);return t.set("Cross-Origin-Embedder-Policy","require-corp"),t.set("Cross-Origin-Opener-Policy","same-origin"),new Response(n.body,{status:n.status,statusText:n.statusText,headers:t})}))}})}else{const e=document.currentScript?document.currentScript.src:new URL("coi-serviceworker.js",window.location.href).href;if(window.SharedArrayBuffer){if(window.sessionStorage.getItem("coiReloaded")){window.sessionStorage.removeItem("coiReloaded")}}else{window.sessionStorage.setItem("coiReloaded","true");navigator.serviceWorker.register(e).then(e=>{e.addEventListener("updatefound",()=>{window.location.reload()}),e.active&&window.location.reload()})}}
+/*! coi-serviceworker v0.1.7 - MIT License - https://github.com/gzuidhof/coi-serviceworker */
+if (typeof window === "undefined") {
+    self.addEventListener("install", () => self.skipWaiting());
+    self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+
+    self.addEventListener("fetch", (event) => {
+        if (event.request.cache === "only-if-cached" && event.request.mode !== "same-origin") {
+            return;
+        }
+
+        event.respondWith(
+            fetch(event.request)
+                .then((response) => {
+                    if (response.status === 0) {
+                        return response;
+                    }
+
+                    const newHeaders = new Headers(response.headers);
+                    newHeaders.set("Cross-Origin-Embedder-Policy", "require-corp");
+                    newHeaders.set("Cross-Origin-Opener-Policy", "same-origin");
+
+                    return new Response(response.body, {
+                        status: response.status,
+                        statusText: response.statusText,
+                        headers: newHeaders,
+                    });
+                })
+                .catch((e) => console.error(e))
+        );
+    });
+} else {
+    (() => {
+        const script = document.currentScript;
+        const b = () => {
+            if ("serviceWorker" in navigator) {
+                navigator.serviceWorker.register(script.src).then((registration) => {
+                    registration.addEventListener("updatefound", () => {
+                        window.location.reload();
+                    });
+                    if (registration.active && !navigator.serviceWorker.controller) {
+                        window.location.reload();
+                    }
+                });
+            }
+        };
+        b();
+    })();
+}
