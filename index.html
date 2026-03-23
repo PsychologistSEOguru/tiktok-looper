@@ -1,89 +1,87 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Instant TikTok Looper</title>
-    <!-- The Security Guard Script -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok Mirror Looper | Free Online Video Tool</title>
     <script src="coi-serviceworker.js"></script>
-    <!-- The Video Engine Script -->
     <script src="https://unpkg.com"></script>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 50px; background: #f4f4f9; }
-        #drop-zone { border: 3px dashed #fe2c55; padding: 60px; border-radius: 20px; width: 300px; margin: 0 auto; cursor: pointer; background: white; }
-        #status { margin-top: 20px; color: #555; font-weight: bold; }
-        button { background: #fe2c55; color: white; border: none; padding: 15px 30px; border-radius: 5px; cursor: pointer; display: none; margin: 20px auto; font-size: 18px; }
+        :root { --primary: #fe2c55; --bg: #0f0f0f; --card: #1f1f1f; --text: #ffffff; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .container { background: var(--card); padding: 40px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); text-align: center; width: 90%; max-width: 500px; }
+        h1 { font-size: 28px; margin-bottom: 10px; color: var(--primary); }
+        p { color: #aaa; margin-bottom: 30px; }
+        #drop-zone { border: 2px dashed #444; padding: 50px 20px; border-radius: 16px; transition: 0.3s; cursor: pointer; background: #2a2a2a; }
+        #drop-zone:hover { border-color: var(--primary); background: #333; }
+        #status { margin-top: 25px; font-size: 14px; letter-spacing: 1px; color: #00ffcc; }
+        .loader { width: 100%; height: 4px; background: #333; margin-top: 15px; border-radius: 10px; overflow: hidden; display: none; }
+        .progress { width: 30%; height: 100%; background: var(--primary); animation: slide 1.5s infinite linear; }
+        @keyframes slide { from { margin-left: -30%; } to { margin-left: 100%; } }
+        button { background: var(--primary); color: white; border: none; padding: 16px 32px; border-radius: 50px; font-weight: bold; cursor: pointer; display: none; margin: 25px auto 0; font-size: 16px; transition: 0.2s; box-shadow: 0 4px 15px rgba(254, 44, 85, 0.3); }
+        button:hover { transform: translateY(-2px); filter: brightness(1.1); }
     </style>
 </head>
 <body>
-    <h1>TikTok Mirror Looper</h1>
-    <p>Drag a clip below to make it loop (Forward + Backward)</p>
-    
-    <div id="drop-zone">Drop Video Here</div>
-    <div id="status">Ready...</div>
-    <button id="download-btn">Download Looped Video</button>
+
+    <div class="container">
+        <h1>TikTok Looper</h1>
+        <p>Creates a seamless Forward + Reverse loop.</p>
+        
+        <div id="drop-zone" onclick="document.getElementById('fileInput').click()">
+            <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#fe2c55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            <div style="margin-top: 15px;">Click or Drag Video Here</div>
+            <input type="file" id="fileInput" style="display:none" accept="video/*">
+        </div>
+
+        <div id="status">READY TO GO</div>
+        <div class="loader" id="loader"><div class="progress"></div></div>
+        
+        <button id="download-btn">Download Looped Video</button>
+    </div>
 
     <script>
         const { createFFmpeg, fetchFile } = FFmpeg;
-        const ffmpeg = createFFmpeg({ log: true });
+        const ffmpeg = createFFmpeg({ log: false });
         const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('fileInput');
         const status = document.getElementById('status');
         const dlBtn = document.getElementById('download-btn');
+        const loader = document.getElementById('loader');
 
-        dropZone.ondragover = (e) => { e.preventDefault(); };
-        dropZone.ondrop = async (e) => {
-            e.preventDefault();
-            const file = e.dataTransfer.files[0];
-            if (!file) return;
-
+        async function processVideo(file) {
             try {
-                status.innerText = "Loading Engine... (Wait 5-10 seconds)";
+                status.innerText = "LOADING ENGINE...";
+                loader.style.display = "block";
                 if (!ffmpeg.isLoaded()) await ffmpeg.load();
 
-                status.innerText = "Processing Video... Don't close this page!";
+                status.innerText = "PROCESSING... (PLEASE WAIT)";
                 ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
                 
-                // The magic command: normal + reversed concat
                 await ffmpeg.run('-i', 'input.mp4', '-filter_complex', '[0:v]reverse[r];[0:v][r]concat=n=2:v=1[v]', '-map', '[v]', 'output.mp4');
 
                 const data = ffmpeg.FS('readFile', 'output.mp4');
                 const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
                 
-                status.innerText = "Finished!";
+                status.innerText = "SUCCESS!";
+                loader.style.display = "none";
                 dlBtn.style.display = "block";
                 dlBtn.onclick = () => {
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = 'looped-video.mp4';
+                    a.download = 'looped-tiktok.mp4';
                     a.click();
                 };
             } catch (err) {
-                console.error(err);
-                status.innerText = "Error! Try a smaller video file.";
+                status.innerText = "ERROR: TRY A SMALLER FILE";
+                loader.style.display = "none";
             }
-        };
-    </script>
-</body>
-</html>
-            status.innerText = "Loading Engine (Please wait)...";
-            if (!ffmpeg.isLoaded()) await ffmpeg.load();
+        }
 
-            status.innerText = "Looping Video... This takes a moment.";
-            ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
-            
-            // This command doubles the video: Normal + Reversed
-            await ffmpeg.run('-i', 'input.mp4', '-filter_complex', '[0:v]reverse[r];[0:v][r]concat=n=2:v=1[v]', '-map', '[v]', 'output.mp4');
-
-            const data = ffmpeg.FS('readFile', 'output.mp4');
-            const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-            
-            status.innerText = "Done!";
-            dlBtn.style.display = "block";
-            dlBtn.onclick = () => {
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'looped-tiktok.mp4';
-                a.click();
-            };
-        };
+        fileInput.onchange = (e) => processVideo(e.target.files[0]);
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.style.borderColor = "#fe2c55"; };
+        dropZone.ondragleave = () => { dropZone.style.borderColor = "#444"; };
+        dropZone.ondrop = (e) => { e.preventDefault(); processVideo(e.dataTransfer.files[0]); };
     </script>
 </body>
 </html>
