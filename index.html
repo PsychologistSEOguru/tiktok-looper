@@ -1,19 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <title>Instant TikTok Looper</title>
+    <!-- The Security Guard Script -->
     <script src="coi-serviceworker.js"></script>
-    <title>Instant TikTok Looper - Free & No Login</title>
+    <!-- The Video Engine Script -->
     <script src="https://unpkg.com"></script>
     <style>
         body { font-family: sans-serif; text-align: center; padding: 50px; background: #f4f4f9; }
         #drop-zone { border: 3px dashed #fe2c55; padding: 60px; border-radius: 20px; width: 300px; margin: 0 auto; cursor: pointer; background: white; }
-        #status { margin-top: 20px; color: #555; }
-        button { background: #fe2c55; color: white; border: none; padding: 15px 30px; border-radius: 5px; cursor: pointer; display: none; margin: 20px auto; }
+        #status { margin-top: 20px; color: #555; font-weight: bold; }
+        button { background: #fe2c55; color: white; border: none; padding: 15px 30px; border-radius: 5px; cursor: pointer; display: none; margin: 20px auto; font-size: 18px; }
     </style>
 </head>
 <body>
     <h1>TikTok Mirror Looper</h1>
-    <p>Drag a clip below to make it loop seamlessly (Forward + Backward)</p>
+    <p>Drag a clip below to make it loop (Forward + Backward)</p>
     
     <div id="drop-zone">Drop Video Here</div>
     <div id="status">Ready...</div>
@@ -26,14 +28,41 @@
         const status = document.getElementById('status');
         const dlBtn = document.getElementById('download-btn');
 
-        dropZone.onclick = () => { /* Simple version: use drag and drop */ };
-
         dropZone.ondragover = (e) => { e.preventDefault(); };
         dropZone.ondrop = async (e) => {
             e.preventDefault();
             const file = e.dataTransfer.files[0];
             if (!file) return;
 
+            try {
+                status.innerText = "Loading Engine... (Wait 5-10 seconds)";
+                if (!ffmpeg.isLoaded()) await ffmpeg.load();
+
+                status.innerText = "Processing Video... Don't close this page!";
+                ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
+                
+                // The magic command: normal + reversed concat
+                await ffmpeg.run('-i', 'input.mp4', '-filter_complex', '[0:v]reverse[r];[0:v][r]concat=n=2:v=1[v]', '-map', '[v]', 'output.mp4');
+
+                const data = ffmpeg.FS('readFile', 'output.mp4');
+                const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+                
+                status.innerText = "Finished!";
+                dlBtn.style.display = "block";
+                dlBtn.onclick = () => {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'looped-video.mp4';
+                    a.click();
+                };
+            } catch (err) {
+                console.error(err);
+                status.innerText = "Error! Try a smaller video file.";
+            }
+        };
+    </script>
+</body>
+</html>
             status.innerText = "Loading Engine (Please wait)...";
             if (!ffmpeg.isLoaded()) await ffmpeg.load();
 
