@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>TikTok Mirror Looper | Pro</title>
-    <!-- 1. The Security Fixer: Must stay at the very top -->
+    <!-- 1. THE AUTO-FIXER: This MUST be the first thing in the file -->
     <script src="coi-serviceworker.js"></script>
     <script src="https://cdn.jsdelivr.net"></script>
     <style>
@@ -29,28 +29,25 @@
             <span style="display:block; margin-top:10px;">Click or Drag Video Here</span>
             <input type="file" id="fileInput" style="display:none" accept="video/*">
         </div>
-        <div id="status">INITIALIZING ENGINE...</div>
+        <div id="status">INITIALIZING...</div>
         <div id="loader" class="loader"><div class="progress"></div></div>
         <button id="download-btn">Download Looped Video</button>
     </div>
 
     <script>
-        // Use a 1-second delay to ensure the library is fully visible to the browser
+        // Wait for the library to be available globally
         let ffmpeg = null;
-        setTimeout(() => {
+        const initInterval = setInterval(() => {
             if (typeof FFmpeg !== 'undefined') {
+                clearInterval(initInterval);
                 const { createFFmpeg } = FFmpeg;
                 ffmpeg = createFFmpeg({ 
                     log: true, 
                     corePath: 'https://cdn.jsdelivr.net' 
                 });
                 document.getElementById('status').innerText = "READY TO GO";
-                document.getElementById('status').style.color = "#00ffcc";
-            } else {
-                document.getElementById('status').innerText = "SECURITY BLOCK: REFRESH THE PAGE";
-                document.getElementById('status').style.color = "#fe2c55";
             }
-        }, 1500);
+        }, 500);
 
         async function processVideo(file) {
             if (!ffmpeg) return;
@@ -59,22 +56,23 @@
             const dlBtn = document.getElementById('download-btn');
             
             try {
-                status.innerText = "STARTING EDITOR...";
+                status.innerText = "STARTING ENGINE...";
                 loader.style.display = "block";
                 dlBtn.style.display = "none";
                 
                 if (!ffmpeg.isLoaded()) await ffmpeg.load();
 
-                status.innerText = "MIRRORING VIDEO... PLEASE WAIT";
+                status.innerText = "LOOPING... PLEASE WAIT";
                 const { fetchFile } = FFmpeg;
                 ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
                 
+                // Mirror loop command
                 await ffmpeg.run('-i', 'input.mp4', '-filter_complex', '[0:v]reverse[r];[0:v][r]concat=n=2:v=1[v]', '-map', '[v]', 'output.mp4');
 
                 const data = ffmpeg.FS('readFile', 'output.mp4');
                 const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
                 
-                status.innerText = "SUCCESS! DOWNLOAD BELOW";
+                status.innerText = "SUCCESS!";
                 loader.style.display = "none";
                 dlBtn.style.display = "block";
                 dlBtn.onclick = () => {
@@ -84,16 +82,16 @@
                     a.click();
                 };
             } catch (err) {
-                status.innerText = "ERROR: TRY A SMALLER VIDEO FILE";
+                console.error(err);
+                status.innerText = "ERROR: TRY A SMALLER VIDEO";
                 loader.style.display = "none";
             }
         }
 
-        document.getElementById('fileInput').onchange = (e) => { if (e.target.files[0]) processVideo(e.target.files[0]); };
+        document.getElementById('fileInput').onchange = (e) => { if (e.target.files.length) processVideo(e.target.files[0]); };
         const dz = document.getElementById('drop-zone');
-        dz.ondragover = (e) => { e.preventDefault(); dz.style.borderColor = "#fe2c55"; };
-        dz.ondragleave = () => { dz.style.borderColor = "#444"; };
-        dz.ondrop = (e) => { e.preventDefault(); if (e.dataTransfer.files[0]) processVideo(e.dataTransfer.files[0]); };
+        dz.ondragover = (e) => e.preventDefault();
+        dz.ondrop = (e) => { e.preventDefault(); if (e.dataTransfer.files.length) processVideo(e.dataTransfer.files[0]); };
     </script>
 </body>
 </html>
