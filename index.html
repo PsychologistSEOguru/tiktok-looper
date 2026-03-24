@@ -3,27 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <title>TikTok Mirror Looper | Pro</title>
-    <!-- 1. THE AUTO-FIXER: This MUST be the first thing in the file -->
+    <!-- 1. LOAD THE SECURITY GUARD FIRST -->
     <script src="coi-serviceworker.js"></script>
+    <!-- 2. LOAD THE VIDEO ENGINE -->
     <script src="https://cdn.jsdelivr.net"></script>
     <style>
         :root { --primary: #fe2c55; --bg: #0f0f0f; --card: #1f1f1f; --text: #ffffff; }
         body { font-family: sans-serif; background: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .container { background: var(--card); padding: 40px; border-radius: 24px; text-align: center; width: 90%; max-width: 450px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .container { background: var(--card); padding: 40px; border-radius: 24px; text-align: center; width: 90%; max-width: 450px; border: 1px solid #333; }
         h1 { color: var(--primary); margin: 0 0 10px 0; }
         #drop-zone { border: 2px dashed #444; padding: 40px; border-radius: 16px; cursor: pointer; margin: 20px 0; background: #222; transition: 0.3s; }
         #drop-zone:hover { border-color: var(--primary); background: #2a2a2a; }
-        #status { font-weight: bold; color: #00ffcc; text-transform: uppercase; margin-top: 15px; font-size: 14px; }
+        #status { font-weight: bold; color: #00ffcc; text-transform: uppercase; margin-top: 15px; font-size: 13px; }
         .loader { width: 100%; height: 4px; background: #333; margin-top: 15px; display: none; overflow: hidden; border-radius: 10px; }
         .progress { width: 40%; height: 100%; background: var(--primary); animation: move 1s infinite linear; }
         @keyframes move { from { margin-left: -40%; } to { margin-left: 100%; } }
-        button { background: var(--primary); color: white; border: none; padding: 15px 30px; border-radius: 50px; cursor: pointer; display: none; margin: 20px auto 0; font-weight: bold; font-size: 16px; width: 100%; }
+        button { background: var(--primary); color: white; border: none; padding: 15px 30px; border-radius: 50px; cursor: pointer; display: none; margin: 20px auto 0; font-weight: bold; width: 100%; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>TikTok Looper</h1>
-        <p style="color:#888; font-size: 14px;">Instant Forward + Reverse Loop</p>
+        <p style="color:#888; font-size: 14px;">Instant Forward + Reverse Video Loop</p>
         <div id="drop-zone" onclick="document.getElementById('fileInput').click()">
             <span style="font-size: 40px;">🎬</span><br>
             <span style="display:block; margin-top:10px;">Click or Drag Video Here</span>
@@ -35,19 +36,26 @@
     </div>
 
     <script>
-        // Wait for the library to be available globally
         let ffmpeg = null;
-        const initInterval = setInterval(() => {
-            if (typeof FFmpeg !== 'undefined') {
-                clearInterval(initInterval);
-                const { createFFmpeg } = FFmpeg;
-                ffmpeg = createFFmpeg({ 
-                    log: true, 
-                    corePath: 'https://cdn.jsdelivr.net' 
-                });
-                document.getElementById('status').innerText = "READY TO GO";
+
+        // Auto-fixer: Reload if security guard hasn't activated yet
+        if (!window.crossOriginIsolated && navigator.serviceWorker.controller) {
+            window.location.reload();
+        }
+
+        async function init() {
+            const status = document.getElementById('status');
+            if (typeof FFmpeg === 'undefined') {
+                status.innerText = "ERROR: LIBRARY NOT LOADED";
+                return;
             }
-        }, 500);
+            const { createFFmpeg } = FFmpeg;
+            ffmpeg = createFFmpeg({ 
+                log: true, 
+                corePath: 'https://cdn.jsdelivr.net' 
+            });
+            status.innerText = "READY TO GO";
+        }
 
         async function processVideo(file) {
             if (!ffmpeg) return;
@@ -56,17 +64,17 @@
             const dlBtn = document.getElementById('download-btn');
             
             try {
-                status.innerText = "STARTING ENGINE...";
+                status.innerText = "LOADING ENGINE...";
                 loader.style.display = "block";
                 dlBtn.style.display = "none";
                 
                 if (!ffmpeg.isLoaded()) await ffmpeg.load();
 
-                status.innerText = "LOOPING... PLEASE WAIT";
+                status.innerText = "PROCESSING... (DON'T CLOSE)";
                 const { fetchFile } = FFmpeg;
                 ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
                 
-                // Mirror loop command
+                // Command: Play normal then play reversed
                 await ffmpeg.run('-i', 'input.mp4', '-filter_complex', '[0:v]reverse[r];[0:v][r]concat=n=2:v=1[v]', '-map', '[v]', 'output.mp4');
 
                 const data = ffmpeg.FS('readFile', 'output.mp4');
@@ -88,6 +96,7 @@
             }
         }
 
+        init();
         document.getElementById('fileInput').onchange = (e) => { if (e.target.files.length) processVideo(e.target.files[0]); };
         const dz = document.getElementById('drop-zone');
         dz.ondragover = (e) => e.preventDefault();
